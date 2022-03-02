@@ -21,6 +21,9 @@ class stepController:
             self.DriveMode = configData.get('StepperParams', 'DriveMode')
             self.MoveCurrent = configData.get('StepperParams', 'MoveCurrent')
 
+            self.UpperSwitchMask = int(configData.get('StepperParams', 'upperLimitSwitchMask'), 16)
+            self.LowerSwitchMask = int(configData.get('StepperParams', 'lowerLimitSwitchMask'), 16)
+
             setResCmd = 'j' + self.MicroStepResolution
             setMVCmd = 'aM' + self.focusAxis + 'V' + self.MaxVelocity
             setMICmd = 'aM' + self.focusAxis + 'm' + self.MoveCurrent
@@ -227,20 +230,34 @@ class nonZeroErrorCode(stepError):
 
 if __name__ == '__main__':
 
-    # st = stepController()
-    serialPort = serial.Serial(port='/dev/stepperControl',
-                            baudrate=9600)
+    import argparse
+    import queue
+
+    # Get arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("configFile", help="pass the name of the config file dummy")
+    args = parser.parse_args()
+
+    # parse config file
+    stepConfig = configparser.ConfigParser()
+    stepConfig.read(args.configFile)
+    
+    dataQ = queue.Queue
+    st = stepController('/dev/stepperControl', stepConfig, dataQ)
     
     while True:
-        try:
-            print('Writing')
-            serialPort.reset_input_buffer()
-            serialPort.write(b'/1?aA\r\n')
-            res = serialPort.read_until(expected=b'\x03')
-            print(res)
+        try: 
+            data = st.readHouseKeepingData()
 
-            time.sleep(0.2)
+            ss = 'Focus Counts: {:06d}\t'\
+                 'Switch Status: {:02d}\t'\
+                 'Velocity: {:05d}'.format(data['FocusAxis'], 
+                    data['FocusSwitches'], 
+                    data['FocusVelocity'])
 
+            print(ss)
+            time.sleep(1)
+        
         except KeyboardInterrupt:
             break
 
