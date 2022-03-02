@@ -1,0 +1,34 @@
+syntax = "proto2";
+
+package ImageMessages;
+
+message ASIimage {
+
+    required sfixed32 header = 1;
+    required sfixed32 id = 2;
+    required sfixed32 messageByteLength = 3;
+    required sfixed32 bitDepth = 4;
+    required sfixed32 width = 5;
+    required sfixed32 height = 6;
+
+    optional bytes imageData = 7; 
+}
+
+message ASIctrlMessage {
+
+    required sfixed32 header = 1;
+    required sfixed32 id = 2;
+    required sfixed32 messageByteLenght = 3;
+    required sfixed32 binning = 4;
+    required sfixed32 exposure = 5;
+}
+
+message stepperCtrlMessage {
+
+    required sfixed32 header = 1;
+    required sfixed32 id = 2;
+    required string axis = 3;
+    required string cmdString = 6;
+    required sfixed32 counts = 4;
+    required sfixed32 speed = 5;
+}

@@ -6,7 +6,7 @@ import logging
 class EchoServerProtocol(asyncio.Protocol):
     
     def __init__(self, qarg, infoLog):
-        self.que = qarg
+        self.cmdQue = qarg
         self.infoLogging = infoLog
         # self.recv_buf = memoryview(bytearray(1048576))
         # self.dataBuf = bytearray()
@@ -29,7 +29,8 @@ class EchoServerProtocol(asyncio.Protocol):
     def data_received(self, data: bytes) -> None:
         # return super().data_received(data)
 
-        print(data)
+        # print(data)
+        self.cmdQue.put(data)
 
 
     # def get_buffer(self, sizehint):

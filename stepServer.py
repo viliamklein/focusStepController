@@ -4,6 +4,8 @@ import configparser
 import stepControl
 
 import stepNetworkInterface as net
+import ImageMessages_pb2 as pbMsgs
+from google.protobuf import message
 
 
 def main(args):
@@ -24,7 +26,7 @@ def main(args):
     logConfigLevel = stepConfig.get("logging", "level")
     numeric_level = getattr(logging, logConfigLevel.upper(), None)
 
-    logging.basicConfig(format='%(asctime)s %(message)s',
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                         level = numeric_level,
                         filemode='a',
                         filename=logNameStr)
@@ -71,6 +73,27 @@ def main(args):
             # check on cmd msg que
             try:
                 cmdMsg = cmdMsgQue.get_nowait()
+                cmdBuf = pbMsgs.stepperCtrlMessage()
+                cmdBuf.ParseFromString(cmdMsg)
+                counts = 0
+
+                if "move" in cmdBuf.cmdString:
+                    counts = cmdBuf.counts
+
+                    logging.debug(f"Cmd={cmdBuf.cmdString}, counts={cmdBuf.counts}")
+
+                    if "Positive" in cmdBuf.cmdString:
+                        st.movePositiveCounts(counts)
+                    elif "Negative" in cmdBuf.cmdString:
+                        st.moveNegativeCounts(counts)
+
+                
+                elif "velocity" in cmdBuf.cmdString:
+                    logging.debug(f"Cmd={cmdBuf.cmdString}, speed={cmdBuf.speed}")
+                    st.setMaxVel(cmdBuf.speed)
+
+            except message.DecodeError:
+                logging.error("Failed to decode focus command message from GSE")
 
             except queue.Empty:
                 pass
