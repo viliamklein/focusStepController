@@ -6,6 +6,32 @@ import logging
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+
+class influxClientDataWriter:
+
+    async def writeStepperHKdata(self, hkdata):
+
+        point = Point("Focus") \
+                .tag("type", "hangarTesting") \
+                .field("FocusCounts", hkdata['FocusAxis'])\
+                .field("FocusSwitches", hkdata['FocusSwitches']) \
+                .time(hkdata["time"], WritePrecision.US)
+
+        self.write_api.write(self.bucket, self.org, point)
+
+    @classmethod
+    async def create(cls, configInfo=None):
+
+        self = influxClientDataWriter()
+        token = "FzANVq9O0CVYN4iHQivNgchUsZhM6HbomP0HuXHKuv5Xp11Xcyb5pEIuZbXnpOqSGfqEc03eel_cS9euGBTPxw=="
+        self.org = "thaispice"
+        self.bucket = "HangarTesting"
+
+        self.client = InfluxDBClient(url="http://10.40.0.32:8086", token=token)
+        self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
+
+        return self
+
 def getInfluxClientFC():
 
     # You can generate a Token from the "Tokens Tab" in the UI

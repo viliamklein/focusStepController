@@ -8,7 +8,7 @@ import ImageMessages_pb2 as pbMsgs
 from google.protobuf import message
 
 
-def main(args):
+async def main(args):
     
     # Get arguments
     parser = argparse.ArgumentParser()
@@ -40,23 +40,28 @@ def main(args):
 
     threadList = [_threadServer,]
 
-    ifWriter, ifBucket, ifOrg = net.getInfluxClientFC()
+    # ifWriter, ifBucket, ifOrg = net.getInfluxClientFC()
+    influxWriter = await net.influxClientDataWriter.create(stepConfig)
 
     # Interface to step controller
     st = stepControl.stepController('/dev/stepperControl', stepConfig, loggingDataQue)
 
     # Stepper loop runner
     loopDelay = float(stepConfig.get('StepperParams', 'loopInterval'))
+    count = 0
+
     while True:
 
+        # startTime = datetime.datetime.now()
+
         try:
-            time.sleep(loopDelay)
+            # time.sleep(loopDelay)
 
             # read housekeeping data
             hkData = st.readHouseKeepingData()
             hkData['time'] = datetime.datetime.utcnow()
 
-            net.writeStepperHKdata(hkData, ifWriter, ifBucket, ifOrg )
+            # net.writeStepperHKdata(hkData, ifWriter, ifBucket, ifOrg )
             #check on limit switches
             focusSwitchValue = hkData["FocusSwitches"]
 
@@ -100,8 +105,13 @@ def main(args):
 
             except queue.Empty:
                 pass
+            
+            # send data to influx and do loop polling delay
+            res = await asyncio.wait_for(
+                        asyncio.gather(asyncio.sleep(loopDelay),
+                                       influxWriter.writeStepperHKdata(hkData)),
+                        timeout=1.)
 
-        
         except KeyboardInterrupt:
             break
     
@@ -116,4 +126,4 @@ def main(args):
 
 if __name__ == "__main__":
 
-    main(sys.argv)
+    asyncio.run(  main(sys.argv) )
