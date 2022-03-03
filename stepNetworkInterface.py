@@ -1,17 +1,38 @@
 import asyncio
-# import numpy as np
-# import ImageMessages_pb2
+from curses.ascii import US
+from dataclasses import field
 import logging
+
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
+
+def getInfluxClientFC():
+
+    # You can generate a Token from the "Tokens Tab" in the UI
+    token = "FzANVq9O0CVYN4iHQivNgchUsZhM6HbomP0HuXHKuv5Xp11Xcyb5pEIuZbXnpOqSGfqEc03eel_cS9euGBTPxw=="
+    org = "thaispice"
+    bucket = "HangarTesting"
+
+    client = InfluxDBClient(url="http://10.40.0.32:8086", token=token)
+    write_api = client.write_api(write_options=SYNCHRONOUS)
+
+    return write_api, bucket, org
+
+def writeStepperHKdata(hkdata, writer, bucket, org):
+
+    point = Point("Focus") \
+        .tag("type", "hangarTesting") \
+        .field("FocusCounts", hkdata['FocusAxis'])\
+        .field("FocusSwitches", hkdata['FocusSwitches']) \
+        .time(hkdata["time"], WritePrecision.US)
+
+    writer.write(bucket, org, point)
 
 class EchoServerProtocol(asyncio.Protocol):
     
     def __init__(self, qarg, infoLog):
         self.cmdQue = qarg
         self.infoLogging = infoLog
-        # self.recv_buf = memoryview(bytearray(1048576))
-        # self.dataBuf = bytearray()
-        # self.asiImgData = ImageMessages_pb2.ASIimage()
-        # self.asiImgData = None
 
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
@@ -27,47 +48,7 @@ class EchoServerProtocol(asyncio.Protocol):
         self.msgLen = -1
     
     def data_received(self, data: bytes) -> None:
-        # return super().data_received(data)
-
-        # print(data)
         self.cmdQue.put(data)
-
-
-    # def get_buffer(self, sizehint):
-    #     return self.recv_buf
-    
-    # def buffer_updated(self, nbytes):
-    #     self.dataBuf += self.recv_buf[:nbytes]
-    #     self.nbytesCounter += nbytes
-    #     self.countRecv += 1
-
-    #     if self.frameStart and self.nbytesCounter >= 24:
-    #         self.frameStart = False
-    #         startBytes = self.recv_buf[0:nbytes]
-    #         self.msgLen = int.from_bytes(startBytes[11:15], byteorder='little')
-        
-    #     if self.nbytesCounter >= self.msgLen and self.msgLen>0:
-    #         # print("\nGot frame")
-    #         # print('Recv count: {:d}'.format(self.countRecv))
-    #         # print('Frame count: {:d}'.format(self.frameCount))
-
-    #         try:
-    #             self.asiImgData.ParseFromString(self.dataBuf)
-    #             self.que.put(self.asiImgData)
-
-    #             # self.transport.write("got image data")
-            
-    #         except pb.message.DecodeError:
-    #             # print('Parse Error')
-    #             self.infoLogging.log(logging.ERROR, "protobuf decode error")
-    #             pass
-
-    #         self.frameStart = True
-    #         self.frameCount += 1
-    #         self.nbytesCounter = 0
-    #         self.countRecv = 0
-    #         self.msgLen = -1
-    #         self.dataBuf = bytearray()
 
     def eof_received(self):
         self.transport.close()
@@ -117,12 +98,3 @@ async def serverRunner(qarg=None, stopEvent=None, infoLog=None, configInfo=None)
 def serverThreadRunner(qarg=None, stopEvent=None, infoLog=None, configInfo=None):
     asyncio.run(serverRunner(qarg, stopEvent, infoLog, configInfo))
 
-def frameDataToArray(data, bits):
-    if bits > 8:
-        dtImg = np.dtype(np.uint16)
-    else:
-        dtImg = np.dtype(np.uint8)
-
-    dtImg = dtImg.newbyteorder('<') # LITTLE ENDIAN!!
-    imgData = np.frombuffer(data, dtype=dtImg)
-    return imgData                                             

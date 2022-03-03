@@ -40,6 +40,7 @@ def main(args):
 
     threadList = [_threadServer,]
 
+    ifWriter, ifBucket, ifOrg = net.getInfluxClientFC()
 
     # Interface to step controller
     st = stepControl.stepController('/dev/stepperControl', stepConfig, loggingDataQue)
@@ -53,7 +54,9 @@ def main(args):
 
             # read housekeeping data
             hkData = st.readHouseKeepingData()
+            hkData['time'] = datetime.datetime.utcnow()
 
+            net.writeStepperHKdata(hkData, ifWriter, ifBucket, ifOrg )
             #check on limit switches
             focusSwitchValue = hkData["FocusSwitches"]
 

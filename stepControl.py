@@ -118,7 +118,6 @@ class stepController:
         setMVCmd = 'aM' + self.focusAxis + 'V{:d}'.format(vel)
         self.sendCommand(setMVCmd)
 
-
     def moveNegativeCounts(self, counts):
 
         movCmd = 'aM' + self.focusAxis + 'D{:d}'.format(abs(counts))
